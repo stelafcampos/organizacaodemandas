@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprintário · Gestão pessoal de sprints</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --ink:#161B22;
+  --ink-soft:#3A4149;
+  --paper:#F5F3EE;
+  --paper-raised:#FFFFFF;
+  --line:#DDD8CC;
+  --accent:#0E6E5A;
+  --accent-soft:#DCEFE9;
+  --accent-2:#B8722E;
+  --danger:#B3402E;
+  --danger-soft:#F6E1DC;
+  --warn:#C79A2A;
+  --warn-soft:#FBF0D4;
+  --cat-gzh:#2E5C8A;
+  --cat-gzh-soft:#DDE7F1;
+  --cat-clube:#0E6E5A;
+  --cat-clube-soft:#DCEFE9;
+  --cat-petlove:#8A4B9E;
+  --cat-petlove-soft:#EBDFF0;
+  --cat-lic:#B8722E;
+  --cat-lic-soft:#F3E3D2;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(22,27,34,0.06), 0 4px 14px rgba(22,27,34,0.06);
+  --serif:'Iowan Old Style','Georgia','Times New Roman',serif;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  --mono:'SF Mono','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.45;
+}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;font-size:13px;}
+
+/* ---------- TOPBAR ---------- */
+.topbar{
+  display:flex;align-items:center;gap:18px;
+  padding:14px 22px;
+  background:var(--ink);
+  color:#F5F3EE;
+  border-bottom:3px solid var(--accent-2);
+  position:sticky;top:0;z-index:40;
+}
+.masthead{
+  font-family:var(--serif);
+  font-size:22px;
+  letter-spacing:0.3px;
+  font-weight:700;
+  display:flex;align-items:baseline;gap:8px;
+  white-space:nowrap;
+}
+.masthead small{
+  font-family:var(--sans);
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:#C7BFA8;
+}
+.tabs{display:flex;gap:2px;margin-left:8px;}
+.tab-btn{
+  background:transparent;border:none;color:#C7BFA8;
+  padding:9px 14px;border-radius:7px;font-size:13px;font-weight:600;
+  letter-spacing:.2px;
+}
+.tab-btn:hover{color:#fff;background:rgba(255,255,255,0.06);}
+.tab-btn.active{color:var(--ink);background:#F5F3EE;}
+.topbar-spacer{flex:1;}
+.btn{
+  border:1px solid transparent;border-radius:7px;padding:8px 14px;
+  font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;
+  transition:filter .12s, transform .05s;white-space:nowrap;
+}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{filter:brightness(1.08);}
+.btn-ghost{background:transparent;border-color:rgba(255,255,255,0.22);color:#F5F3EE;}
+.btn-ghost:hover{background:rgba(255,255,255,0.08);}
+.btn-light{background:#F5F3EE;color:var(--ink);border-color:var(--line);}
+.btn-light:hover{filter:brightness(0.97);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-danger:hover{filter:brightness(1.08);}
+.btn-outline-danger{background:transparent;border-color:var(--danger);color:var(--danger);}
+.btn-outline-danger:hover{background:var(--danger-soft);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-icon{padding:7px;border-radius:7px;}
+
+/* ---------- FILTERBAR ---------- */
+.filterbar{
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  padding:12px 22px;background:var(--paper-raised);
+  border-bottom:1px solid var(--line);
+  position:sticky;top:63px;z-index:30;
+}
+.filterbar .fgroup{display:flex;flex-direction:column;gap:2px;}
+.filterbar label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);font-weight:700;}
+.filterbar select, .filterbar input[type=text]{
+  border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff;color:var(--ink);
+  min-width:130px;
+}
+.filterbar .clear-filters{
+  align-self:flex-end;background:transparent;border:none;color:var(--accent-2);font-size:12px;font-weight:700;
+  padding:6px 4px;text-decoration:underline;
+}
+.result-count{margin-left:auto;font-size:12px;color:var(--ink-soft);align-self:flex-end;padding-bottom:6px;}
+
+/* ---------- MAIN ---------- */
+main{padding:20px 22px 60px;max-width:1600px;margin:0 auto;}
+.view{display:none;}
+.view.active{display:block;}
+
+/* KANBAN */
+.kanban{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:start;
+}
+.kcol{
+  background:rgba(0,0,0,0.02);border:1px solid var(--line);border-radius:12px;
+  min-height:200px;display:flex;flex-direction:column;
+}
+.kcol-head{
+  padding:12px 14px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:2px solid var(--line);
+}
+.kcol-title{font-weight:700;font-size:13px;letter-spacing:.2px;}
+.kcol-count{
+  background:var(--ink);color:#F5F3EE;border-radius:20px;font-size:11px;font-weight:700;
+  padding:2px 9px;
+}
+.kcol[data-status="Não iniciado"] .kcol-head{border-color:#9AA3AD;}
+.kcol[data-status="Em andamento"] .kcol-head{border-color:var(--warn);}
+.kcol[data-status="Concluída"] .kcol-head{border-color:var(--accent);}
+.kcol[data-status="Cancelada"] .kcol-head{border-color:var(--danger);}
+.kcol-body{padding:10px;display:flex;flex-direction:column;gap:9px;flex:1;min-height:80px;}
+.kcol-body.drag-over{background:var(--accent-soft);border-radius:8px;}
+
+.card{
+  background:var(--paper-raised);border:1px solid var(--line);border-radius:10px;
+  padding:11px 12px;box-shadow:var(--shadow);cursor:grab;
+  display:flex;flex-direction:column;gap:7px;
+}
+.card:active{cursor:grabbing;}
+.card.dragging{opacity:0.4;}
+.card-top{display:flex;align-items:flex-start;gap:6px;justify-content:space-between;}
+.card-title{font-size:13px;font-weight:600;line-height:1.3;color:var(--ink);}
+.card-menu-btn{background:none;border:none;color:var(--ink-soft);font-size:16px;line-height:1;padding:2px 4px;border-radius:5px;}
+.card-menu-btn:hover{background:var(--line);}
+.badge{
+  font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 7px;border-radius:20px;
+  display:inline-flex;align-items:center;gap:3px;white-space:nowrap;
+}
+.badge-cat[data-cat="GZH"]{background:var(--cat-gzh-soft);color:var(--cat-gzh);}
+.badge-cat[data-cat="Clube do Assinante"]{background:var(--cat-clube-soft);color:var(--cat-clube);}
+.badge-cat[data-cat="Petlove"]{background:var(--cat-petlove-soft);color:var(--cat-petlove);}
+.badge-cat[data-cat="Licenciamento de Camisetas"]{background:var(--cat-lic-soft);color:var(--cat-lic);}
+.badge-prio[data-p="Baixa"]{background:#E4E7EA;color:#4B5560;}
+.badge-prio[data-p="Média"]{background:var(--warn-soft);color:#8A6A16;}
+.badge-prio[data-p="Alta"]{background:#FBE1CE;color:#95531A;}
+.badge-prio[data-p="Urgente"]{background:var(--danger-soft);color:var(--danger);}
+.card-meta{display:flex;flex-wrap:wrap;gap:5px;}
+.card-foot{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--ink-soft);margin-top:2px;}
+.card-foot .due{display:flex;align-items:center;gap:4px;}
+.card-foot .due.overdue{color:var(--danger);font-weight:700;}
+.card-sub-progress{display:flex;align-items:center;gap:5px;}
+.progress-track{width:44px;height:5px;background:var(--line);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);}
+.card-sprint-tag{font-size:10.5px;color:var(--accent-2);font-weight:700;}
+.card-resp{font-size:11px;font-weight:700;color:var(--ink-soft);background:var(--line);border-radius:20px;padding:1px 8px;}
+.empty-col{padding:18px 8px;text-align:center;color:#9A9284;font-size:12px;}
+
+/* DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.dash-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);}
+.dash-num{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;}
+.dash-label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);font-weight:700;margin-top:6px;}
+.dash-panels{display:grid;grid-template-columns:1.1fr 1fr 1.2fr;gap:16px;align-items:start;}
+.panel{background:var(--paper-raised);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);}
+.panel h3{margin:0 0 12px;font-family:var(--serif);font-size:16px;border-bottom:1px solid var(--line);padding-bottom:8px;}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12px;}
+.bar-row .bar-label{width:110px;flex-shrink:0;color:var(--ink-soft);font-weight:600;}
+.bar-track{flex:1;height:9px;background:var(--line);border-radius:5px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:5px;}
+.bar-num{width:24px;text-align:right;font-weight:700;}
+.upcoming-item{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
+.upcoming-item:last-child{border-bottom:none;}
+.upcoming-item .u-title{font-weight:600;cursor:pointer;}
+.upcoming-item .u-title:hover{text-decoration:underline;}
+.upcoming-date{font-weight:700;white-space:nowrap;}
+.upcoming-date.soon{color:var(--danger);}
+
+/* SPRINTS VIEW */
+.sprint-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+.sprint-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);}
+.sprint-card h4{margin:0 0 4px;font-family:var(--serif);font-size:17px;}
+.sprint-dates{font-size:11.5px;color:var(--ink-soft);margin-bottom:8px;}
+.sprint-status-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px;}
+.sprint-status-chip[data-s="Planejada"]{background:#E4E7EA;color:#4B5560;}
+.sprint-status-chip[data-s="Em andamento"]{background:var(--warn-soft);color:#8A6A16;}
+.sprint-status-chip[data-s="Concluída"]{background:var(--accent-soft);color:var(--accent);}
+.sprint-card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+.sprint-task-count{font-size:12px;color:var(--ink-soft);}
+.sprint-actions{display:flex;gap:6px;}
+
+/* ---------- MODALS ---------- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(22,27,34,0.5);display:none;
+  align-items:flex-start;justify-content:center;z-index:100;overflow-y:auto;padding:32px 16px;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--paper-raised);border-radius:14px;width:100%;max-width:760px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);margin-bottom:40px;
+}
+.modal.modal-wide{max-width:920px;}
+.modal-head{
+  display:flex;align-items:center;justify-content:space-between;padding:16px 22px;
+  border-bottom:1px solid var(--line);
+}
+.modal-head h2{margin:0;font-family:var(--serif);font-size:20px;}
+.modal-close{background:none;border:none;font-size:20px;color:var(--ink-soft);padding:4px 8px;border-radius:6px;}
+.modal-close:hover{background:var(--line);}
+.modal-body{padding:18px 22px;max-height:72vh;overflow-y:auto;}
+.modal-foot{display:flex;justify-content:space-between;gap:8px;padding:14px 22px;border-top:1px solid var(--line);}
+.modal-foot .right-group{display:flex;gap:8px;}
+
+.modal-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:-18px -22px 16px;padding:0 22px;}
+.mtab-btn{background:none;border:none;padding:11px 12px;font-size:12.5px;font-weight:700;color:var(--ink-soft);border-bottom:2px solid transparent;letter-spacing:.2px;}
+.mtab-btn.active{color:var(--accent);border-color:var(--accent);}
+.mtab-panel{display:none;}
+.mtab-panel.active{display:block;}
+
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+.field.full{grid-column:1/-1;}
+.field label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;color:var(--ink-soft);}
+.field input, .field select, .field textarea{
+  border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink);width:100%;
+}
+.field textarea{resize:vertical;min-height:64px;font-family:inherit;}
+.field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--accent);outline-offset:1px;}
+
+/* subtasks */
+.subtask-item{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;}
+.subtask-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(0,0,0,0.02);cursor:pointer;}
+.subtask-head .stitle{flex:1;font-weight:600;font-size:13px;}
+.subtask-head .stitle.empty{color:#9A9284;font-style:italic;}
+.subtask-body{padding:12px;display:none;border-top:1px solid var(--line);}
+.subtask-item.expanded .subtask-body{display:block;}
+.chevron{transition:transform .15s;display:inline-block;color:var(--ink-soft);}
+.subtask-item.expanded .chevron{transform:rotate(90deg);}
+.subtask-status-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.subtask-status-dot[data-s="Não iniciado"]{background:#9AA3AD;}
+.subtask-status-dot[data-s="Em andamento"]{background:var(--warn);}
+.subtask-status-dot[data-s="Concluída"]{background:var(--accent);}
+.subtask-status-dot[data-s="Cancelada"]{background:var(--danger);}
+.add-subtask-btn{width:100%;padding:10px;border:1.5px dashed var(--line);background:transparent;border-radius:10px;font-weight:700;color:var(--accent-2);font-size:12.5px;}
+.add-subtask-btn:hover{background:var(--accent-soft);border-color:var(--accent);}
+
+/* attachments */
+.attach-drop{border:1.5px dashed var(--line);border-radius:10px;padding:16px;text-align:center;color:var(--ink-soft);font-size:12.5px;margin-bottom:12px;}
+.attach-drop.drag-over{background:var(--accent-soft);border-color:var(--accent);}
+.attach-list{display:flex;flex-direction:column;gap:7px;}
+.attach-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;}
+.attach-row .a-icon{font-size:16px;}
+.attach-row .a-name{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.attach-row .a-size{color:var(--ink-soft);font-size:11px;}
+
+/* history */
+.history-list{display:flex;flex-direction:column;gap:0;}
+.hist-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
+.hist-item:last-child{border-bottom:none;}
+.hist-dot{width:7px;height:7px;border-radius:50%;background:var(--accent-2);margin-top:5px;flex-shrink:0;}
+.hist-when{color:var(--ink-soft);font-size:11px;white-space:nowrap;}
+.hist-empty{color:#9A9284;font-style:italic;font-size:12.5px;padding:8px 0;}
+
+/* import modal */
+.import-drop{border:2px dashed var(--line);border-radius:12px;padding:30px;text-align:center;margin-bottom:14px;}
+.import-drop input[type=file]{margin-top:10px;}
+.import-summary{background:var(--accent-soft);border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:12px;display:none;}
+.import-summary.show{display:block;}
+.import-row-preview{max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;font-size:12px;}
+.import-row-preview table{width:100%;border-collapse:collapse;}
+.import-row-preview th,.import-row-preview td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;}
+.import-row-preview th{background:rgba(0,0,0,0.03);position:sticky;top:0;}
+
+/* toast */
+#toast-container{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--ink);color:#F5F3EE;padding:11px 16px;border-radius:9px;font-size:13px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:8px;animation:slideIn .2s ease-out;min-width:220px;}
+.toast.err{background:var(--danger);}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.confirm-overlay{position:fixed;inset:0;background:rgba(22,27,34,0.5);display:none;align-items:center;justify-content:center;z-index:300;}
+.confirm-overlay.open{display:flex;}
+.confirm-box{background:var(--paper-raised);border-radius:12px;padding:20px 22px;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+.confirm-box p{margin:0 0 16px;font-size:14px;}
+.confirm-box .row{display:flex;justify-content:flex-end;gap:8px;}
+
+.hint{font-size:11.5px;color:var(--ink-soft);margin-top:-6px;margin-bottom:10px;}
+.section-label{font-family:var(--serif);font-size:15px;margin:0 0 10px;}
+
+@media (max-width:1100px){
+  .kanban{grid-template-columns:repeat(2,1fr);}
+  .dash-grid{grid-template-columns:repeat(2,1fr);}
+  .dash-panels{grid-template-columns:1fr;}
+  .field-grid{grid-template-columns:1fr;}
+}
+@media (max-width:640px){
+  .kanban{grid-template-columns:1fr;}
+  .dash-grid{grid-template-columns:1fr;}
+  .topbar{flex-wrap:wrap;}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="masthead">Sprintário <small>Q3 2026 · Gestão pessoal</small></div>
+  <div class="tabs">
+    <button class="tab-btn active" data-view="kanban">Kanban</button>
+    <button class="tab-btn" data-view="dashboard">Dashboard</button>
+    <button class="tab-btn" data-view="sprints">Sprints</button>
+  </div>
+  <div class="topbar-spacer"></div>
+  <button class="btn btn-ghost" id="btnImport">⇪ Importar planilha</button>
+  <button class="btn btn-ghost" id="btnNewSprint">+ Sprint</button>
+  <button class="btn btn-primary" id="btnNewTask">+ Nova task</button>
+</header>
+
+<div class="filterbar">
+  <div class="fgroup">
+    <label>Sprint</label>
+    <select id="filterSprint"><option value="">Todas</option></select>
+  </div>
+  <div class="fgroup">
+    <label>Categoria</label>
+    <select id="filterCategory">
+      <option value="">Todas</option>
+      <option>GZH</option>
+      <option>Clube do Assinante</option>
+      <option>Petlove</option>
+      <option>Licenciamento de Camisetas</option>
+    </select>
+  </div>
+  <div class="fgroup">
+    <label>Status</label>
+    <select id="filterStatus">
+      <option value="">Todos</option>
+      <option>Não iniciado</option>
+      <option>Em andamento</option>
+      <option>Concluída</option>
+      <option>Cancelada</option>
+    </select>
+  </div>
+  <div class="fgroup">
+    <label>Prioridade</label>
+    <select id="filterPriority">
+      <option value="">Todas</option>
+      <option>Baixa</option>
+      <option>Média</option>
+      <option>Alta</option>
+      <option>Urgente</option>
+    </select>
+  </div>
+  <div class="fgroup">
+    <label>Habilitador</label>
+    <input type="text" id="filterHabilitador" placeholder="buscar...">
+  </div>
+  <button class="clear-filters" id="btnClearFilters">Limpar filtros</button>
+  <div class="result-count" id="resultCount"></div>
+</div>
+
+<main>
+  <section class="view active" id="view-kanban">
+    <div class="kanban" id="kanbanBoard"></div>
+  </section>
+
+  <section class="view" id="view-dashboard">
+    <div class="dash-grid" id="dashStats"></div>
+    <div class="dash-panels">
+      <div class="panel">
+        <h3>Tarefas por status</h3>
+        <div id="dashByStatus"></div>
+      </div>
+      <div class="panel">
+        <h3>Tarefas por categoria</h3>
+        <div id="dashByCategory"></div>
+      </div>
+      <div class="panel">
+        <h3>Próximas entregas</h3>
+        <div id="dashUpcoming"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-sprints">
+    <div class="sprint-grid" id="sprintGrid"></div>
+  </section>
+</main>
+
+<!-- TASK MODAL -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h2 id="taskModalTitle">Nova task</h2>
+      <button class="modal-close" data-close="taskModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tabs">
+        <button class="mtab-btn active" data-mtab="detalhes">Detalhes</button>
+        <button class="mtab-btn" data-mtab="subtasks">Subtasks <span id="subtaskCountTag"></span></button>
+        <button class="mtab-btn" data-mtab="anexos">Anexos <span id="taskAttachCountTag"></span></button>
+        <button class="mtab-btn" data-mtab="historico">Histórico</button>
+      </div>
+
+      <div class="mtab-panel active" id="mtab-detalhes">
+        <div class="field full">
+          <label>Título</label>
+          <input type="text" id="f-title" placeholder="Título da task">
+        </div>
+        <div class="field full">
+          <label>Descrição</label>
+          <textarea id="f-description" placeholder="Descreva o contexto e objetivo da task"></textarea>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label>Categoria</label>
+            <select id="f-category">
+              <option>GZH</option>
+              <option>Clube do Assinante</option>
+              <option>Petlove</option>
+              <option>Licenciamento de Camisetas</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Habilitador</label>
+            <input type="text" id="f-habilitador" placeholder="ex.: aguardando aprovação jurídica">
+          </div>
+          <div class="field">
+            <label>Responsável</label>
+            <input type="text" id="f-responsavel" placeholder="ex.: Stela">
+          </div>
+          <div class="field">
+            <label>Prioridade</label>
+            <select id="f-priority">
+              <option>Baixa</option>
+              <option selected>Média</option>
+              <option>Alta</option>
+              <option>Urgente</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="f-status">
+              <option>Não iniciado</option>
+              <option>Em andamento</option>
+              <option>Concluída</option>
+              <option>Cancelada</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Data de entrega</label>
+            <input type="date" id="f-dueDate">
+          </div>
+          <div class="field full">
+            <label>Sprint</label>
+            <select id="f-sprint"><option value="">Sem sprint (backlog)</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="mtab-panel" id="mtab-subtasks">
+        <div id="subtaskList"></div>
+        <button class="add-subtask-btn" id="btnAddSubtask">+ Adicionar subtask / etapa</button>
+      </div>
+
+      <div class="mtab-panel" id="mtab-anexos">
+        <div class="attach-drop" id="taskAttachDrop">
+          Arraste arquivos aqui ou <label style="color:var(--accent-2);font-weight:700;cursor:pointer;">clique para escolher<input type="file" id="taskAttachInput" multiple style="display:none;"></label>
+        </div>
+        <div class="attach-list" id="taskAttachList"></div>
+      </div>
+
+      <div class="mtab-panel" id="mtab-historico">
+        <div class="history-list" id="taskHistoryList"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline-danger" id="btnDeleteTask">🗑 Excluir task</button>
+      <div class="right-group">
+        <button class="btn btn-light" data-close="taskModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveTask">Salvar task</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUBTASK MODAL -->
+<div class="modal-overlay" id="subtaskModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="subtaskModalTitle">Subtask</h2>
+      <button class="modal-close" data-close="subtaskModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field full">
+        <label>Título</label>
+        <input type="text" id="s-title">
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label>Habilitador</label>
+          <input type="text" id="s-habilitador">
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="s-status">
+            <option>Não iniciado</option>
+            <option>Em andamento</option>
+            <option>Concluída</option>
+            <option>Cancelada</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Data de entrega</label>
+          <input type="date" id="s-dueDate">
+        </div>
+      </div>
+      <div class="field full">
+        <label>Descrição detalhada</label>
+        <textarea id="s-description" style="min-height:110px;"></textarea>
+      </div>
+      <div class="field full">
+        <label>Anexos</label>
+        <div class="attach-drop" id="subAttachDrop">
+          Arraste arquivos aqui ou <label style="color:var(--accent-2);font-weight:700;cursor:pointer;">clique para escolher<input type="file" id="subAttachInput" multiple style="display:none;"></label>
+        </div>
+        <div class="attach-list" id="subAttachList"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline-danger" id="btnDeleteSubtask">🗑 Excluir subtask</button>
+      <div class="right-group">
+        <button class="btn btn-light" data-close="subtaskModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveSubtask">Salvar subtask</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPRINT MODAL -->
+<div class="modal-overlay" id="sprintModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="sprintModalTitle">Nova sprint</h2>
+      <button class="modal-close" data-close="sprintModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field full">
+        <label>Nome</label>
+        <input type="text" id="sp-name" placeholder="ex.: Iteração 7">
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label>Data início</label>
+          <input type="date" id="sp-start">
+        </div>
+        <div class="field">
+          <label>Data fim</label>
+          <input type="date" id="sp-end">
+        </div>
+      </div>
+      <div class="field full">
+        <label>Status</label>
+        <select id="sp-status">
+          <option>Planejada</option>
+          <option>Em andamento</option>
+          <option>Concluída</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline-danger" id="btnDeleteSprint">🗑 Excluir sprint</button>
+      <div class="right-group">
+        <button class="btn btn-light" data-close="sprintModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveSprint">Salvar sprint</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Importar planilha (.xlsx / .csv)</h2>
+      <button class="modal-close" data-close="importModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="hint" style="margin-top:0;">
+        Colunas esperadas: <b>Projeto, Marco, Data de entrega do marco, Épico, Data de entrega do épico,
+        História, Data de entrega da história, Responsável, Habilitador/Observação</b>. Cada linha vira uma task
+        (Categoria = Projeto, Título = História, Habilitador = última coluna). Sprints são criadas automaticamente
+        a partir das iterações encontradas.
+      </p>
+      <div class="import-drop" id="importDrop">
+        <div style="font-size:28px;">📄</div>
+        <div style="margin:8px 0;">Arraste sua planilha aqui</div>
+        <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv">
+      </div>
+      <div class="field">
+        <label>Filtrar por responsável (opcional, contém)</label>
+        <input type="text" id="importFilterResp" placeholder="ex.: Stela — deixe vazio para importar tudo">
+      </div>
+      <div class="import-summary" id="importSummary"></div>
+      <div class="import-row-preview" id="importPreview"></div>
+    </div>
+    <div class="modal-foot">
+      <div></div>
+      <div class="right-group">
+        <button class="btn btn-light" data-close="importModal">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmImport" disabled>Importar tasks</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <p id="confirmText">Tem certeza?</p>
+    <div class="row">
+      <button class="btn btn-light" id="confirmCancelBtn">Cancelar</button>
+      <button class="btn btn-danger" id="confirmOkBtn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+window.XLSX_READY = typeof XLSX !== 'undefined';
+</script>
+<script id="seed-data-script" type="application/json">{"sprints": [{"id": "sprint-1", "name": "Iteração 1", "startDate": "2026-07-13", "endDate": "2026-07-24", "status": "Planejada"}, {"id": "sprint-2", "name": "Iteração 2", "startDate": "2026-07-27", "endDate": "2026-08-07", "status": "Planejada"}, {"id": "sprint-3", "name": "Iteração 3", "startDate": "2026-08-10", "endDate": "2026-08-21", "status": "Planejada"}, {"id": "sprint-4", "name": "Iteração 4", "startDate": "2026-08-24", "endDate": "2026-09-04", "status": "Planejada"}, {"id": "sprint-5", "name": "Iteração 5", "startDate": "2026-09-07", "endDate": "2026-09-18", "status": "Planejada"}, {"id": "sprint-6", "name": "Iteração 6", "startDate": "2026-09-21", "endDate": "2026-10-02", "status": "Planejada"}], "tasks": [{"id": "task-1", "title": "Análise de persona de Petlove, de mercado e perfis de assinantes atuais de GZH + Petlove — primeiro rascunho de personas", "description": "Épico: [GZH + PETLOVE] Desenho de persona e direcionamento de abordagem", "category": "Petlove", "habilitador": "Passar para a interação 2", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-07-24", "sprintId": "sprint-1", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-2", "title": "Consolidação do material de persona e narrativas", "description": "Épico: [GZH + PETLOVE] Desenho de persona e direcionamento de abordagem", "category": "Petlove", "habilitador": "Passar para a interação 2", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-07-24", "sprintId": "sprint-1", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-3", "title": "Fechar definições sobre mote, brindes e principais ações de aniversário do Clube", "description": "Épico: [CLUBE DO ASSINANTE] Definições da campanha de aniversário do Clube", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Bethânia/Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-07-24", "sprintId": "sprint-1", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-4", "title": "Validar material enviado pela comunicação com desdobramentos da nova linha visual", "description": "Épico: [CLUBE DO ASSINANTE] Nova linha visual mais premium", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Daniela/Fernanda/Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-07-24", "sprintId": "sprint-1", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-5", "title": "Montar briefing para nova LP do Clube com nova linha visual", "description": "Épico: [CLUBE DO ASSINANTE] Nova linha visual mais premium", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Daniela/Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-07-24", "sprintId": "sprint-1", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-6", "title": "Rascunho de direcionamento de abordagem junto da Fer e do Gui a partir da extensão do benefício", "description": "Marco: [GZH + PETLOVE/NOVOS BUNDLES] Negociação de extensão do benefício de Petlove para manutenção da percepção de valor\nÉpico: [GZH + PETLOVE] Estender benefício para mesma duração da assinatura", "category": "Petlove", "habilitador": "Aguardando retornos e encaminhamentos com Petlove", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-07-24", "sprintId": "sprint-1", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-7", "title": "Mapear atualizações a serem feitas nos argumentos de peças e LP", "description": "Marco: [GZH + PETLOVE/NOVOS BUNDLES] Negociação de extensão do benefício de Petlove para manutenção da percepção de valor\nÉpico: [GZH + PETLOVE] Estender benefício para mesma duração da assinatura", "category": "Petlove", "habilitador": "Aguardando retornos e encaminhamentos com Petlove", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-07-24", "sprintId": "sprint-1", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-8", "title": "Preparar apresentação para times (call center/lideranças)", "description": "Marco: [GZH KIDS] Novas linhas de receita a partir de retenção e upsell\nÉpico: [GZH KIDS] Expansão para upsell pelo Portal do Assinante e call center", "category": "GZH", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-07-24", "sprintId": "sprint-1", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-9", "title": "Desenho da estratégia multicanal para cadastro de dependente (mídia paga, canais do Clube, utility, push, in-app)", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Incentivar o cadastro de dependentes no plano família", "category": "Clube do Assinante", "habilitador": "Passar para a interação 2", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-07-24", "sprintId": "sprint-1", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-10", "title": "Definir recorte de quem pode ser acionado sem risco de atrito (alinhar exclusões com Ester/Nicolas)", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Ativação de base legada nunca ativada", "category": "Clube do Assinante", "habilitador": "Passar para a interação 2", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-07-24", "sprintId": "sprint-1", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-11", "title": "Identificar padrões do público para definir segmentações mais eficientes por canal (entender o comportamento desse público — está na newsletter? está no Instagram do Clube?)", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Ativação de base legada nunca ativada", "category": "Clube do Assinante", "habilitador": "Passar para a interação 2", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-07-24", "sprintId": "sprint-1", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-12", "title": "E-mail para base selecionada de GZH com guia da família POA", "description": "", "category": "GZH", "habilitador": "Aquisição", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-13", "title": "Levantar dados necessários e acompanhar estruturação dos dados para analytics/tracking", "description": "Épico: [GZH KIDS] Montar processo de acompanhamento de ativação de apps e cancelamento (dashboard)", "category": "GZH", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-14", "title": "Entender como é feita a liberação e cancelamento e levar necessários para automatizar com envolvidos (time do call center/playhub)", "description": "Épico: [GZH KIDS] Montar processo de acompanhamento de ativação de apps e cancelamento (dashboard)", "category": "GZH", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-15", "title": "Criar automação para acompanhar as ativações e cancelamentos nas plataformas", "description": "Épico: [GZH KIDS] Automatizar acompanhamento de liberação e cancelamento do benefício", "category": "GZH", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-16", "title": "Garantir que todas as pontas estão fluindo e que o lançamento será realizado conforme o cronograma", "description": "Épico: [LICENCIAMENTO DE PRODUTOS] Lançamento das camisetas da Gaúcha", "category": "Licenciamento de Camisetas", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-17", "title": "Criar automação para acompanhar as ativações e cancelamentos nas plataformas", "description": "Épico: [GZH + PETLOVE] Automatizar acompanhamento de liberação e cancelamento do benefício", "category": "Petlove", "habilitador": "Aguardando desenvolvimento do time de dados", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-18", "title": "Revisão das peças jornada de GZH Kids", "description": "Épico: [GZH KIDS] Ativação da jornada de onboarding", "category": "GZH", "habilitador": "GT de Engajamento", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-19", "title": "Desenhar estratégia de aniversário de Clube: aquisição e engajamento", "description": "Épico: [CLUBE DO ASSINANTE] Execução da campanha de aniversário do Clube", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-20", "title": "Encaminhar direcionamentos de aniversário de Clube para aquisição, upsell e engajamento", "description": "Épico: [CLUBE DO ASSINANTE] Execução da campanha de aniversário do Clube", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-21", "title": "Criação do conteúdo do guia", "description": "Épico: [GZH KIDS] Criação de novo guia de conteúdo", "category": "GZH", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-22", "title": "Acompanhar produção e encaminhar aprovação dos materiais e fotos de divulgação para GTM", "description": "Marco: [LICENCIAMENTO DE PRODUTOS] Lançamento da primeira linha de produtos licenciados da Gaúcha\nÉpico: [LICENCIAMENTO DE PRODUTOS] Desenho da estratégia de go to mkt das camisetas de Gaúcha", "category": "Licenciamento de Camisetas", "habilitador": "", "responsavel": "Stela/Daniela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-23", "title": "Garantir e acompanhar entrega da estratégia de campanha feita pela comunicação", "description": "Marco: [LICENCIAMENTO DE PRODUTOS] Lançamento da primeira linha de produtos licenciados da Gaúcha\nÉpico: [LICENCIAMENTO DE PRODUTOS] Desenho da estratégia de go to mkt das camisetas de Gaúcha", "category": "Licenciamento de Camisetas", "habilitador": "", "responsavel": "Stela/Daniela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-24", "title": "Produção das camisetas teste", "description": "Marco: [LICENCIAMENTO DE PRODUTOS] Lançamento da primeira linha de produtos licenciados da Gaúcha\nÉpico: [LICENCIAMENTO DE PRODUTOS] Desenho da estratégia de go to mkt das camisetas de Gaúcha", "category": "Licenciamento de Camisetas", "habilitador": "", "responsavel": "Stela/Daniela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-25", "title": "Atualização do contrato com Petlove e assinaturas", "description": "Marco: [GZH + PETLOVE/NOVOS BUNDLES] Negociação de extensão do benefício de Petlove para manutenção da percepção de valor\nÉpico: [GZH + PETLOVE] Estender benefício para mesma duração da assinatura", "category": "Petlove", "habilitador": "Aguardando retornos e encaminhamentos com Petlove", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-26", "title": "Conduzir com o time de growth ajustes a partir da extensão do benefício e garantir que novo argumento está no ar", "description": "Marco: [GZH + PETLOVE/NOVOS BUNDLES] Negociação de extensão do benefício de Petlove para manutenção da percepção de valor\nÉpico: [GZH + PETLOVE] Estender benefício para mesma duração da assinatura", "category": "Petlove", "habilitador": "Aquisição", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-27", "title": "Alinhar com o time de retenção argumentos e ofertas para ampliar GZH Kids para essa frente", "description": "Marco: [GZH KIDS] Novas linhas de receita a partir de retenção e upsell\nÉpico: [GZH KIDS] Expansão para retenção", "category": "GZH", "habilitador": "Atendimento", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-28", "title": "Apresentar materiais de GZH Kids com jornada de clientes e ofertas para o time de call center", "description": "Marco: [GZH KIDS] Novas linhas de receita a partir de retenção e upsell\nÉpico: [GZH KIDS] Expansão para upsell pelo Portal do Assinante e call center", "category": "GZH", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-29", "title": "Levantar toda a jornada de onboarding existente (e-mail, in-app etc.) e identificar gaps de comunicação e possíveis oportunidades/ajustes", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Onboarding e ativação de novas safras", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-30", "title": "Desenhar a jornada de onboarding adicional de Clube (não mexer nos e-mails), dividida por etapas de manutenção 30–90/120 dias até o 12º mês", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Onboarding e ativação de novas safras", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-31", "title": "Briefing para novos criativos para adicionais de onboarding", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Onboarding e ativação de novas safras", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-32", "title": "Entender a viabilidade de adaptar a lógica de catálogo de produto para catálogo de benefícios", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Estratégias para fomentar a recorrência de uso", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-07", "sprintId": "sprint-2", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-33", "title": "Alinhar com o time de upsell argumentos e ofertas para ampliar GZH Kids para essa frente", "description": "Marco: [GZH KIDS] Novas linhas de receita a partir de retenção e upsell\nÉpico: [GZH KIDS] Expansão para upsell pelo Portal do Assinante e call center", "category": "GZH", "habilitador": "Precisamos prever criativos e esforço do Ju em subir e ativar", "responsavel": "Stela/Fernanda/Juliano", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-21", "sprintId": "sprint-3", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-34", "title": "Estruturação de plano de comunicação e marketing: revisar o material já feito e entender quais iniciativas podem ser feitas de forma perene sem necessidade de sempre pensar em ativações pontuais", "description": "Marco: [CLUBE DO ASSINANTE] Aumento da percepção de valor de Clube no interior a partir de expansão do portfólio de parcerias e da presença de marca\nÉpico: [CLUBE DO ASSINANTE] Reforço da percepção de valor da marca Clube no interior", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-21", "sprintId": "sprint-3", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-35", "title": "Produção de spot do Clube para rodar na Gaúcha Passo Fundo", "description": "Marco: [CLUBE DO ASSINANTE] Aumento da percepção de valor de Clube no interior a partir de expansão do portfólio de parcerias e da presença de marca\nÉpico: [CLUBE DO ASSINANTE] Reforço da percepção de valor da marca Clube no interior", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-21", "sprintId": "sprint-3", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-36", "title": "Ativar novos criativos/comunicações de plano família em mídia paga", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Incentivar o cadastro de dependentes no plano família", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela/João", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-21", "sprintId": "sprint-3", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-37", "title": "Identificar padrões do público via cruzamento de dados, para segmentar comunicações por canal/mensagem de maior impacto por perfil", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Transformar heavy users em promotores da marca", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-21", "sprintId": "sprint-3", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-38", "title": "Desenhar estratégia para impactar público que nunca usou Clube", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Ativação de base legada nunca ativada", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-21", "sprintId": "sprint-3", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-39", "title": "Refinar o corte para quem ativou e não voltou a gerar, em vez de só \"sem uso nos últimos 3 meses\"", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Estratégias para fomentar a recorrência de uso", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-08-21", "sprintId": "sprint-3", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-40", "title": "Garantir que todos os materiais e estratégias de aniversário estão no ar ou programados", "description": "Épico: [CLUBE DO ASSINANTE] Execução da campanha de aniversário do Clube", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-09-04", "sprintId": "sprint-4", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-41", "title": "Ativar novos criativos/comunicações de onboarding", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Onboarding e ativação de novas safras", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela/João", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-09-04", "sprintId": "sprint-4", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-42", "title": "Desenhar estratégia para fomentar recorrência de uso", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Estratégias para fomentar a recorrência de uso", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-09-04", "sprintId": "sprint-4", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-43", "title": "Desenho da estratégia macro de marketing e negócios para o Dia das Crianças", "description": "", "category": "GZH", "habilitador": "Não identifiquei outras histórias relacionadas que contemplassem Aquisição (foco em vendas) e/ou desdobramentos da Fer (se for algo diferente do que está previsto para Clube)", "responsavel": "Stela", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-09-18", "sprintId": "sprint-5", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-44", "title": "Ativação da campanha de mídia paga para ativação da base que nunca usou", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Ativação de base legada nunca ativada", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela/João", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-09-18", "sprintId": "sprint-5", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}, {"id": "task-45", "title": "Ativação da campanha de mídia paga com foco em recorrência de uso", "description": "Marco: [CLUBE DO ASSINANTE] Estratégia para aumento de uso de benefícios e usuários únicos no Clube\nÉpico: [CLUBE DO ASSINANTE] Estratégias para fomentar a recorrência de uso", "category": "Clube do Assinante", "habilitador": "", "responsavel": "Stela/João", "priority": "Média", "status": "Não iniciado", "dueDate": "2026-09-18", "sprintId": "sprint-5", "attachments": [], "subtasks": [], "history": [], "createdAt": "2026-07-28T12:00:00.000Z", "updatedAt": "2026-07-28T12:00:00.000Z"}]}</script>
+<script>(function(){
+"use strict";
+
+/* ============================= DB LAYER ============================= */
+const DB_NAME = 'sprintarioDB';
+const DB_VERSION = 1;
+let db = null;
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e)=>{
+      const _db = e.target.result;
+      if(!_db.objectStoreNames.contains('tasks')) _db.createObjectStore('tasks',{keyPath:'id'});
+      if(!_db.objectStoreNames.contains('sprints')) _db.createObjectStore('sprints',{keyPath:'id'});
+      if(!_db.objectStoreNames.contains('meta')) _db.createObjectStore('meta',{keyPath:'key'});
+    };
+    req.onsuccess = (e)=>{ db = e.target.result; resolve(db); };
+    req.onerror = (e)=>{ reject(e.target.error); };
+  });
+}
+
+function tx(storeNames, mode){
+  return db.transaction(storeNames, mode);
+}
+
+function getAll(storeName){
+  return new Promise((resolve,reject)=>{
+    const store = tx([storeName],'readonly').objectStore(storeName);
+    const req = store.getAll();
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+
+function putRecord(storeName, obj){
+  return new Promise((resolve,reject)=>{
+    const store = tx([storeName],'readwrite').objectStore(storeName);
+    const req = store.put(obj);
+    req.onsuccess = ()=>resolve(true);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+
+function deleteRecord(storeName, id){
+  return new Promise((resolve,reject)=>{
+    const store = tx([storeName],'readwrite').objectStore(storeName);
+    const req = store.delete(id);
+    req.onsuccess = ()=>resolve(true);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+
+function getMeta(key){
+  return new Promise((resolve,reject)=>{
+    const store = tx(['meta'],'readonly').objectStore('meta');
+    const req = store.get(key);
+    req.onsuccess = ()=>resolve(req.result ? req.result.value : null);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+function setMeta(key,value){
+  return putRecord('meta',{key,value});
+}
+
+/* ============================= STATE ============================= */
+const STATUSES = ['Não iniciado','Em andamento','Concluída','Cancelada'];
+const CATEGORIES = ['GZH','Clube do Assinante','Petlove','Licenciamento de Camisetas'];
+const PRIORITIES = ['Baixa','Média','Alta','Urgente'];
+
+let state = {
+  tasks: [],
+  sprints: [],
+  filters: { sprint:'', category:'', status:'', priority:'', habilitador:'' },
+  currentTaskId: null,
+  editingSubtaskId: null,
+  currentSprintId: null,
+  activeView: 'kanban',
+  confirmCallback: null,
+};
+
+function uid(prefix){
+  return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8);
+}
+function nowISO(){ return new Date().toISOString(); }
+
+function findTask(id){ return state.tasks.find(t=>t.id===id); }
+function findSprint(id){ return state.sprints.find(s=>s.id===id); }
+
+/* ============================= HISTORY ============================= */
+function addHistory(task, label){
+  task.history = task.history || [];
+  task.history.unshift({ ts: nowISO(), label });
+}
+
+/* ============================= INIT / SEED ============================= */
+async function init(){
+  await openDB();
+  const seeded = await getMeta('seeded');
+  let [tasks, sprints] = await Promise.all([getAll('tasks'), getAll('sprints')]);
+
+  if(!seeded){
+    const seedEl = document.getElementById('seed-data-script');
+    let seedData = {sprints:[],tasks:[]};
+    try{ seedData = JSON.parse(seedEl.textContent); }catch(e){ console.warn('seed parse fail', e); }
+    for(const s of seedData.sprints){ await putRecord('sprints', s); }
+    for(const t of seedData.tasks){
+      t.history = [{ts:t.createdAt, label:'Task criada a partir da importação inicial da planilha do Q3 2026.'}];
+      await putRecord('tasks', t);
+    }
+    await setMeta('seeded', true);
+    tasks = await getAll('tasks');
+    sprints = await getAll('sprints');
+  }
+
+  state.tasks = tasks;
+  state.sprints = sprints.sort((a,b)=> (a.startDate||'').localeCompare(b.startDate||''));
+
+  renderAll();
+}
+
+async function persistTask(task){
+  task.updatedAt = nowISO();
+  await putRecord('tasks', task);
+}
+async function persistSprint(sprint){
+  await putRecord('sprints', sprint);
+}
+
+/* ============================= UTIL ============================= */
+function esc(str){
+  if(str===undefined || str===null) return '';
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtDate(iso){
+  if(!iso) return '';
+  const parts = iso.split('-');
+  if(parts.length<3) return iso;
+  return parts[2]+'/'+parts[1]+'/'+parts[0];
+}
+function fmtDateTime(iso){
+  if(!iso) return '';
+  const dt = new Date(iso);
+  if(isNaN(dt)) return iso;
+  return dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+function todayISO(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+function isOverdue(iso, status){
+  if(!iso || status==='Concluída' || status==='Cancelada') return false;
+  return iso < todayISO();
+}
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function fmtSize(bytes){
+  if(bytes<1024) return bytes+' B';
+  if(bytes<1024*1024) return (bytes/1024).toFixed(1)+' KB';
+  return (bytes/1024/1024).toFixed(1)+' MB';
+}
+function toast(msg, isErr){
+  const c = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast' + (isErr?' err':'');
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 2600);
+}
+function showConfirm(text, cb){
+  document.getElementById('confirmText').textContent = text;
+  state.confirmCallback = cb;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
+/* ============================= FILTERING ============================= */
+function getFilteredTasks(){
+  return state.tasks.filter(t=>{
+    if(state.filters.sprint && t.sprintId !== state.filters.sprint) return false;
+    if(state.filters.category && t.category !== state.filters.category) return false;
+    if(state.filters.status && t.status !== state.filters.status) return false;
+    if(state.filters.priority && t.priority !== state.filters.priority) return false;
+    if(state.filters.habilitador){
+      const q = state.filters.habilitador.toLowerCase();
+      if(!(t.habilitador||'').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/* ============================= RENDER: KANBAN ============================= */
+function subtaskProgress(task){
+  const subs = task.subtasks||[];
+  if(subs.length===0) return null;
+  const done = subs.filter(s=>s.status==='Concluída').length;
+  return {done, total:subs.length};
+}
+
+function renderKanban(){
+  const board = document.getElementById('kanbanBoard');
+  const tasks = getFilteredTasks();
+  board.innerHTML = '';
+  STATUSES.forEach(status=>{
+    const col = document.createElement('div');
+    col.className = 'kcol';
+    col.dataset.status = status;
+    const colTasks = tasks.filter(t=>t.status===status);
+    col.innerHTML = `
+      <div class="kcol-head">
+        <span class="kcol-title">${status}</span>
+        <span class="kcol-count">${colTasks.length}</span>
+      </div>
+      <div class="kcol-body" data-status="${status}"></div>
+    `;
+    board.appendChild(col);
+    const body = col.querySelector('.kcol-body');
+    if(colTasks.length===0){
+      body.innerHTML = '<div class="empty-col">Nenhuma task aqui</div>';
+    } else {
+      colTasks.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+      colTasks.forEach(t=> body.appendChild(renderCard(t)));
+    }
+    body.addEventListener('dragover', e=>{ e.preventDefault(); body.classList.add('drag-over'); });
+    body.addEventListener('dragleave', ()=> body.classList.remove('drag-over'));
+    body.addEventListener('drop', async e=>{
+      e.preventDefault();
+      body.classList.remove('drag-over');
+      const taskId = e.dataTransfer.getData('text/task-id');
+      const task = findTask(taskId);
+      if(task && task.status !== status){
+        const old = task.status;
+        task.status = status;
+        addHistory(task, `Status alterado de "${old}" para "${status}".`);
+        await persistTask(task);
+        renderAll();
+        toast('Status atualizado');
+      }
+    });
+  });
+  document.getElementById('resultCount').textContent = tasks.length + ' task(s)';
+}
+
+function renderCard(t){
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.draggable = true;
+  card.dataset.id = t.id;
+  const sprint = t.sprintId ? findSprint(t.sprintId) : null;
+  const prog = subtaskProgress(t);
+  const overdue = isOverdue(t.dueDate, t.status);
+  card.innerHTML = `
+    <div class="card-top">
+      <div class="card-title">${esc(t.title)||'(sem título)'}</div>
+      <button class="card-menu-btn" data-menu-task="${t.id}" title="Excluir task">🗑</button>
+    </div>
+    <div class="card-meta">
+      <span class="badge badge-cat" data-cat="${esc(t.category)}">${esc(t.category)}</span>
+      <span class="badge badge-prio" data-p="${esc(t.priority)}">${esc(t.priority)}</span>
+    </div>
+    <div class="card-foot">
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${t.responsavel? `<span class="card-resp">${esc(t.responsavel)}</span>`:''}
+        ${sprint? `<span class="card-sprint-tag">${esc(sprint.name)}</span>`:''}
+      </div>
+      <div class="due ${overdue?'overdue':''}">${t.dueDate? '📅 '+fmtDate(t.dueDate) : ''}</div>
+    </div>
+    ${prog? `<div class="card-sub-progress"><div class="progress-track"><div class="progress-fill" style="width:${Math.round(100*prog.done/prog.total)}%"></div></div><span style="font-size:10.5px;color:var(--ink-soft);">${prog.done}/${prog.total} subtasks</span></div>`:''}
+  `;
+  card.addEventListener('dragstart', e=>{
+    e.dataTransfer.setData('text/task-id', t.id);
+    setTimeout(()=>card.classList.add('dragging'),0);
+  });
+  card.addEventListener('dragend', ()=> card.classList.remove('dragging'));
+  card.addEventListener('click', (e)=>{
+    if(e.target.closest('[data-menu-task]')) return;
+    openTaskModal(t.id);
+  });
+  card.querySelector('[data-menu-task]').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    showConfirm(`Excluir a task "${t.title}"? Essa ação não pode ser desfeita.`, async ()=>{
+      await deleteRecord('tasks', t.id);
+      state.tasks = state.tasks.filter(x=>x.id!==t.id);
+      renderAll();
+      toast('Task excluída');
+    });
+  });
+  return card;
+}
+
+/* ============================= RENDER: DASHBOARD ============================= */
+function renderDashboard(){
+  const tasks = getFilteredTasks();
+  const total = tasks.length;
+  const done = tasks.filter(t=>t.status==='Concluída').length;
+  const inProgress = tasks.filter(t=>t.status==='Em andamento').length;
+  const overdue = tasks.filter(t=>isOverdue(t.dueDate,t.status)).length;
+
+  document.getElementById('dashStats').innerHTML = `
+    <div class="dash-card"><div class="dash-num">${total}</div><div class="dash-label">Total de tasks</div></div>
+    <div class="dash-card"><div class="dash-num">${inProgress}</div><div class="dash-label">Em andamento</div></div>
+    <div class="dash-card"><div class="dash-num">${done}</div><div class="dash-label">Concluídas</div></div>
+    <div class="dash-card"><div class="dash-num" style="color:${overdue>0?'var(--danger)':'var(--ink)'}">${overdue}</div><div class="dash-label">Atrasadas</div></div>
+  `;
+
+  const statusColors = {'Não iniciado':'#9AA3AD','Em andamento':'#C79A2A','Concluída':'#0E6E5A','Cancelada':'#B3402E'};
+  let byStatusHtml = '';
+  STATUSES.forEach(s=>{
+    const n = tasks.filter(t=>t.status===s).length;
+    const pct = total? Math.round(100*n/total):0;
+    byStatusHtml += `<div class="bar-row"><span class="bar-label">${s}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${statusColors[s]}"></div></div><span class="bar-num">${n}</span></div>`;
+  });
+  document.getElementById('dashByStatus').innerHTML = byStatusHtml || '<p class="hist-empty">Sem dados</p>';
+
+  const catColors = {'GZH':'#2E5C8A','Clube do Assinante':'#0E6E5A','Petlove':'#8A4B9E','Licenciamento de Camisetas':'#B8722E'};
+  let byCatHtml = '';
+  CATEGORIES.forEach(c=>{
+    const n = tasks.filter(t=>t.category===c).length;
+    const pct = total? Math.round(100*n/total):0;
+    byCatHtml += `<div class="bar-row"><span class="bar-label">${c}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${catColors[c]}"></div></div><span class="bar-num">${n}</span></div>`;
+  });
+  document.getElementById('dashByCategory').innerHTML = byCatHtml;
+
+  const upcoming = tasks.filter(t=>t.dueDate && t.status!=='Concluída' && t.status!=='Cancelada')
+    .sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,10);
+  const soonThreshold = new Date(); soonThreshold.setDate(soonThreshold.getDate()+7);
+  const soonISO = soonThreshold.toISOString().slice(0,10);
+  document.getElementById('dashUpcoming').innerHTML = upcoming.length ? upcoming.map(t=>`
+    <div class="upcoming-item">
+      <span class="u-title" data-open-task="${t.id}">${esc(t.title)}</span>
+      <span class="upcoming-date ${t.dueDate<=soonISO?'soon':''}">${fmtDate(t.dueDate)}</span>
+    </div>
+  `).join('') : '<p class="hist-empty">Nenhuma entrega futura</p>';
+  document.querySelectorAll('[data-open-task]').forEach(el=>{
+    el.addEventListener('click', ()=> openTaskModal(el.dataset.openTask));
+  });
+}
+
+/* ============================= RENDER: SPRINTS ============================= */
+function renderSprints(){
+  const grid = document.getElementById('sprintGrid');
+  if(state.sprints.length===0){
+    grid.innerHTML = '<p class="hist-empty">Nenhuma sprint cadastrada ainda. Clique em "+ Sprint" para criar a primeira.</p>';
+    return;
+  }
+  grid.innerHTML = '';
+  state.sprints.forEach(sp=>{
+    const count = state.tasks.filter(t=>t.sprintId===sp.id).length;
+    const div = document.createElement('div');
+    div.className = 'sprint-card';
+    div.innerHTML = `
+      <span class="sprint-status-chip" data-s="${esc(sp.status)}">${esc(sp.status)}</span>
+      <h4>${esc(sp.name)}</h4>
+      <div class="sprint-dates">${fmtDate(sp.startDate)} — ${fmtDate(sp.endDate)}</div>
+      <div class="sprint-card-foot">
+        <span class="sprint-task-count">${count} task(s)</span>
+        <div class="sprint-actions">
+          <button class="btn btn-sm btn-light" data-edit-sprint="${sp.id}">Editar</button>
+          <button class="btn btn-sm btn-light" data-view-sprint="${sp.id}">Ver tasks</button>
+        </div>
+      </div>
+    `;
+    grid.appendChild(div);
+  });
+  grid.querySelectorAll('[data-edit-sprint]').forEach(b=>{
+    b.addEventListener('click', ()=> openSprintModal(b.dataset.editSprint));
+  });
+  grid.querySelectorAll('[data-view-sprint]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      document.getElementById('filterSprint').value = b.dataset.viewSprint;
+      state.filters.sprint = b.dataset.viewSprint;
+      switchView('kanban');
+      renderAll();
+    });
+  });
+}
+
+/* ============================= FILTER DROPDOWNS ============================= */
+function renderSprintOptions(){
+  const opts = ['<option value="">Todas</option>'].concat(
+    state.sprints.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`)
+  );
+  document.getElementById('filterSprint').innerHTML = opts.join('');
+  document.getElementById('filterSprint').value = state.filters.sprint;
+
+  const opts2 = ['<option value="">Sem sprint (backlog)</option>'].concat(
+    state.sprints.map(s=>`<option value="${s.id}">${esc(s.name)} (${fmtDate(s.startDate)}–${fmtDate(s.endDate)})</option>`)
+  );
+  document.getElementById('f-sprint').innerHTML = opts2.join('');
+}
+
+function renderAll(){
+  renderSprintOptions();
+  renderKanban();
+  renderDashboard();
+  renderSprints();
+}
+
+/* ============================= TASK MODAL ============================= */
+let draftTask = null; // working copy while modal open
+
+function openTaskModal(taskId){
+  const modal = document.getElementById('taskModal');
+  if(taskId){
+    const t = findTask(taskId);
+    if(!t){ toast('Task não encontrada', true); return; }
+    draftTask = JSON.parse(JSON.stringify(t));
+    document.getElementById('taskModalTitle').textContent = 'Editar task';
+    document.getElementById('btnDeleteTask').style.display = '';
+  } else {
+    draftTask = {
+      id: uid('task'), title:'', description:'', category:CATEGORIES[0], habilitador:'',
+      responsavel:'', priority:'Média', status:'Não iniciado', dueDate:'', sprintId:'',
+      attachments:[], subtasks:[], history:[], createdAt: nowISO(), updatedAt: nowISO()
+    };
+    document.getElementById('taskModalTitle').textContent = 'Nova task';
+    document.getElementById('btnDeleteTask').style.display = 'none';
+  }
+  state.currentTaskId = draftTask.id;
+  fillTaskForm(draftTask);
+  switchModalTab('detalhes');
+  modal.classList.add('open');
+}
+
+function fillTaskForm(t){
+  document.getElementById('f-title').value = t.title||'';
+  document.getElementById('f-description').value = t.description||'';
+  document.getElementById('f-category').value = t.category||CATEGORIES[0];
+  document.getElementById('f-habilitador').value = t.habilitador||'';
+  document.getElementById('f-responsavel').value = t.responsavel||'';
+  document.getElementById('f-priority').value = t.priority||'Média';
+  document.getElementById('f-status').value = t.status||'Não iniciado';
+  document.getElementById('f-dueDate').value = t.dueDate||'';
+  document.getElementById('f-sprint').value = t.sprintId||'';
+  renderSubtaskList();
+  renderTaskAttachments();
+  renderTaskHistory();
+  document.getElementById('subtaskCountTag').textContent = t.subtasks.length? `(${t.subtasks.length})`:'';
+  document.getElementById('taskAttachCountTag').textContent = t.attachments.length? `(${t.attachments.length})`:'';
+}
+
+function readTaskFormIntoDraft(){
+  draftTask.title = document.getElementById('f-title').value.trim();
+  draftTask.description = document.getElementById('f-description').value;
+  draftTask.category = document.getElementById('f-category').value;
+  draftTask.habilitador = document.getElementById('f-habilitador').value;
+  draftTask.responsavel = document.getElementById('f-responsavel').value;
+  draftTask.priority = document.getElementById('f-priority').value;
+  draftTask.status = document.getElementById('f-status').value;
+  draftTask.dueDate = document.getElementById('f-dueDate').value;
+  draftTask.sprintId = document.getElementById('f-sprint').value || null;
+}
+
+async function saveTaskFromModal(){
+  const original = findTask(draftTask.id);
+  readTaskFormIntoDraft();
+
+  if(!draftTask.title){
+    toast('Dê um título para a task', true);
+    return;
+  }
+
+  if(!original){
+    addHistory(draftTask, 'Task criada.');
+  } else {
+    if(original.status !== draftTask.status) addHistory(draftTask, `Status alterado de "${original.status}" para "${draftTask.status}".`);
+    if((original.sprintId||'') !== (draftTask.sprintId||'')){
+      const oldS = original.sprintId? findSprint(original.sprintId) : null;
+      const newS = draftTask.sprintId? findSprint(draftTask.sprintId) : null;
+      addHistory(draftTask, `Sprint alterada de "${oldS?oldS.name:'Backlog'}" para "${newS?newS.name:'Backlog'}".`);
+    }
+    if(original.category !== draftTask.category) addHistory(draftTask, `Categoria alterada de "${original.category}" para "${draftTask.category}".`);
+    if((original.habilitador||'') !== (draftTask.habilitador||'')) addHistory(draftTask, `Habilitador alterado para "${draftTask.habilitador||'(vazio)'}".`);
+    if((original.dueDate||'') !== (draftTask.dueDate||'')) addHistory(draftTask, `Prazo alterado para "${draftTask.dueDate?fmtDate(draftTask.dueDate):'(sem data)'}".`);
+  }
+
+  const idx = state.tasks.findIndex(t=>t.id===draftTask.id);
+  if(idx>=0) state.tasks[idx] = draftTask; else state.tasks.push(draftTask);
+  await persistTask(draftTask);
+  document.getElementById('taskModal').classList.remove('open');
+  renderAll();
+  toast('Task salva');
+}
+
+function deleteCurrentTask(){
+  showConfirm(`Excluir a task "${draftTask.title}"? Essa ação não pode ser desfeita.`, async ()=>{
+    await deleteRecord('tasks', draftTask.id);
+    state.tasks = state.tasks.filter(t=>t.id!==draftTask.id);
+    document.getElementById('taskModal').classList.remove('open');
+    renderAll();
+    toast('Task excluída');
+  });
+}
+
+/* ---------- modal tabs ---------- */
+function switchModalTab(tab){
+  document.querySelectorAll('.mtab-btn').forEach(b=> b.classList.toggle('active', b.dataset.mtab===tab));
+  document.querySelectorAll('.mtab-panel').forEach(p=> p.classList.toggle('active', p.id==='mtab-'+tab));
+}
+
+/* ============================= SUBTASKS ============================= */
+function renderSubtaskList(){
+  const list = document.getElementById('subtaskList');
+  const subs = draftTask.subtasks||[];
+  if(subs.length===0){
+    list.innerHTML = '<p class="hist-empty">Nenhuma subtask ainda.</p>';
+    return;
+  }
+  list.innerHTML = subs.map(s=>`
+    <div class="subtask-item" data-sub-id="${s.id}">
+      <div class="subtask-head" data-toggle-sub="${s.id}">
+        <span class="chevron">▶</span>
+        <span class="subtask-status-dot" data-s="${esc(s.status)}"></span>
+        <span class="stitle ${!s.title?'empty':''}">${esc(s.title)||'(sem título)'}</span>
+        ${s.dueDate?`<span style="font-size:11px;color:var(--ink-soft);">📅 ${fmtDate(s.dueDate)}</span>`:''}
+        <button class="btn btn-sm btn-outline-danger" data-del-sub="${s.id}">🗑</button>
+      </div>
+      <div class="subtask-body">
+        <p style="margin:0 0 8px;font-size:12.5px;color:var(--ink-soft);"><b>Habilitador:</b> ${esc(s.habilitador)||'—'}</p>
+        <p style="margin:0 0 10px;font-size:13px;white-space:pre-wrap;">${esc(s.description)||'<i>Sem descrição</i>'}</p>
+        <p style="margin:0 0 10px;font-size:12px;">Anexos: ${ (s.attachments||[]).length }</p>
+        <button class="btn btn-sm btn-light" data-open-sub-edit="${s.id}">Editar subtask</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('[data-toggle-sub]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-del-sub]')) return;
+      el.closest('.subtask-item').classList.toggle('expanded');
+    });
+  });
+  list.querySelectorAll('[data-open-sub-edit]').forEach(el=>{
+    el.addEventListener('click', ()=> openSubtaskModal(el.dataset.openSubEdit));
+  });
+  list.querySelectorAll('[data-del-sub]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const subId = el.dataset.delSub;
+      const sub = draftTask.subtasks.find(s=>s.id===subId);
+      showConfirm(`Excluir a subtask "${sub.title||'(sem título)'}"?`, async ()=>{
+        draftTask.subtasks = draftTask.subtasks.filter(s=>s.id!==subId);
+        addHistory(draftTask, `Subtask "${sub.title||'(sem título)'}" removida.`);
+        await persistTask(draftTask);
+        const idx = state.tasks.findIndex(t=>t.id===draftTask.id);
+        if(idx>=0) state.tasks[idx] = draftTask;
+        renderSubtaskList();
+        renderTaskHistory();
+        document.getElementById('subtaskCountTag').textContent = draftTask.subtasks.length? `(${draftTask.subtasks.length})`:'';
+        renderAll();
+        toast('Subtask excluída');
+      });
+    });
+  });
+}
+
+function addNewSubtask(){
+  const sub = { id: uid('sub'), title:'', habilitador:'', description:'', status:'Não iniciado', dueDate:'', attachments:[] };
+  draftTask.subtasks = draftTask.subtasks || [];
+  draftTask.subtasks.push(sub);
+  openSubtaskModal(sub.id, true);
+}
+
+let draftSubtaskIsNew = false;
+function openSubtaskModal(subId, isNew){
+  draftSubtaskIsNew = !!isNew;
+  state.editingSubtaskId = subId;
+  const sub = draftTask.subtasks.find(s=>s.id===subId);
+  document.getElementById('subtaskModalTitle').textContent = isNew? 'Nova subtask' : 'Editar subtask';
+  document.getElementById('s-title').value = sub.title||'';
+  document.getElementById('s-habilitador').value = sub.habilitador||'';
+  document.getElementById('s-status').value = sub.status||'Não iniciado';
+  document.getElementById('s-dueDate').value = sub.dueDate||'';
+  document.getElementById('s-description').value = sub.description||'';
+  renderSubAttachments(sub);
+  document.getElementById('subtaskModal').classList.add('open');
+}
+
+async function saveSubtaskFromModal(){
+  const sub = draftTask.subtasks.find(s=>s.id===state.editingSubtaskId);
+  const oldStatus = sub.status;
+  sub.title = document.getElementById('s-title').value.trim();
+  sub.habilitador = document.getElementById('s-habilitador').value;
+  sub.status = document.getElementById('s-status').value;
+  sub.dueDate = document.getElementById('s-dueDate').value;
+  sub.description = document.getElementById('s-description').value;
+
+  if(draftSubtaskIsNew){
+    addHistory(draftTask, `Subtask "${sub.title||'(sem título)'}" criada.`);
+  } else if(oldStatus !== sub.status){
+    addHistory(draftTask, `Subtask "${sub.title||'(sem título)'}" alterada de "${oldStatus}" para "${sub.status}".`);
+    if(sub.status === 'Concluída'){
+      addHistory(draftTask, `Subtask "${sub.title||'(sem título)'}" concluída.`);
+    }
+  }
+
+  await persistTask(draftTask);
+  const idx = state.tasks.findIndex(t=>t.id===draftTask.id);
+  if(idx>=0) state.tasks[idx] = draftTask;
+  document.getElementById('subtaskModal').classList.remove('open');
+  renderSubtaskList();
+  renderTaskHistory();
+  document.getElementById('subtaskCountTag').textContent = draftTask.subtasks.length? `(${draftTask.subtasks.length})`:'';
+  renderAll();
+  toast('Subtask salva');
+}
+
+function deleteCurrentSubtask(){
+  const sub = draftTask.subtasks.find(s=>s.id===state.editingSubtaskId);
+  showConfirm(`Excluir a subtask "${sub.title||'(sem título)'}"?`, async ()=>{
+    draftTask.subtasks = draftTask.subtasks.filter(s=>s.id!==sub.id);
+    addHistory(draftTask, `Subtask "${sub.title||'(sem título)'}" removida.`);
+    await persistTask(draftTask);
+    const idx = state.tasks.findIndex(t=>t.id===draftTask.id);
+    if(idx>=0) state.tasks[idx] = draftTask;
+    document.getElementById('subtaskModal').classList.remove('open');
+    renderSubtaskList();
+    renderTaskHistory();
+    document.getElementById('subtaskCountTag').textContent = draftTask.subtasks.length? `(${draftTask.subtasks.length})`:'';
+    renderAll();
+    toast('Subtask excluída');
+  });
+}
+
+/* ============================= ATTACHMENTS ============================= */
+function renderTaskAttachments(){
+  const list = document.getElementById('taskAttachList');
+  const atts = draftTask.attachments||[];
+  if(atts.length===0){ list.innerHTML = '<p class="hist-empty">Nenhum anexo.</p>'; return; }
+  list.innerHTML = atts.map(a=>`
+    <div class="attach-row">
+      <span class="a-icon">📎</span>
+      <span class="a-name">${esc(a.name)}</span>
+      <span class="a-size">${fmtSize(a.size)}</span>
+      <a class="btn btn-sm btn-light" href="${a.data}" download="${esc(a.name)}">Baixar</a>
+      <button class="btn btn-sm btn-outline-danger" data-del-att="${a.id}">🗑</button>
+    </div>
+  `).join('');
+  list.querySelectorAll('[data-del-att]').forEach(b=>{
+    b.addEventListener('click', async ()=>{
+      const att = draftTask.attachments.find(a=>a.id===b.dataset.delAtt);
+      draftTask.attachments = draftTask.attachments.filter(a=>a.id!==b.dataset.delAtt);
+      addHistory(draftTask, `Anexo "${att.name}" removido.`);
+      await persistTask(draftTask);
+      const idx = state.tasks.findIndex(t=>t.id===draftTask.id);
+      if(idx>=0) state.tasks[idx] = draftTask;
+      renderTaskAttachments();
+      renderTaskHistory();
+      document.getElementById('taskAttachCountTag').textContent = draftTask.attachments.length? `(${draftTask.attachments.length})`:'';
+      toast('Anexo removido');
+    });
+  });
+}
+
+async function handleTaskFiles(fileList){
+  for(const file of fileList){
+    const data = await fileToBase64(file);
+    draftTask.attachments = draftTask.attachments||[];
+    draftTask.attachments.push({ id: uid('att'), name:file.name, size:file.size, type:file.type, data, addedAt: nowISO() });
+    addHistory(draftTask, `Anexo "${file.name}" adicionado.`);
+  }
+  await persistTask(draftTask);
+  const idx = state.tasks.findIndex(t=>t.id===draftTask.id);
+  if(idx>=0) state.tasks[idx] = draftTask;
+  renderTaskAttachments();
+  renderTaskHistory();
+  document.getElementById('taskAttachCountTag').textContent = draftTask.attachments.length? `(${draftTask.attachments.length})`:'';
+  toast('Anexo(s) adicionado(s)');
+}
+
+function renderSubAttachments(sub){
+  const list = document.getElementById('subAttachList');
+  const atts = sub.attachments||[];
+  if(atts.length===0){ list.innerHTML = '<p class="hist-empty">Nenhum anexo.</p>'; return; }
+  list.innerHTML = atts.map(a=>`
+    <div class="attach-row">
+      <span class="a-icon">📎</span>
+      <span class="a-name">${esc(a.name)}</span>
+      <span class="a-size">${fmtSize(a.size)}</span>
+      <a class="btn btn-sm btn-light" href="${a.data}" download="${esc(a.name)}">Baixar</a>
+      <button class="btn btn-sm btn-outline-danger" data-del-sub-att="${a.id}">🗑</button>
+    </div>
+  `).join('');
+  list.querySelectorAll('[data-del-sub-att]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      sub.attachments = sub.attachments.filter(a=>a.id!==b.dataset.delSubAtt);
+      renderSubAttachments(sub);
+    });
+  });
+}
+
+async function handleSubFiles(fileList){
+  const sub = draftTask.subtasks.find(s=>s.id===state.editingSubtaskId);
+  for(const file of fileList){
+    const data = await fileToBase64(file);
+    sub.attachments = sub.attachments||[];
+    sub.attachments.push({ id: uid('att'), name:file.name, size:file.size, type:file.type, data, addedAt: nowISO() });
+  }
+  renderSubAttachments(sub);
+  toast('Anexo(s) adicionado(s) (salve a subtask para confirmar)');
+}
+
+/* ============================= HISTORY RENDER ============================= */
+function renderTaskHistory(){
+  const list = document.getElementById('taskHistoryList');
+  const hist = draftTask.history||[];
+  if(hist.length===0){ list.innerHTML = '<p class="hist-empty">Sem histórico ainda.</p>'; return; }
+  list.innerHTML = hist.map(h=>`
+    <div class="hist-item">
+      <span class="hist-dot"></span>
+      <div>
+        <div>${esc(h.label)}</div>
+        <div class="hist-when">${fmtDateTime(h.ts)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ============================= SPRINT MODAL ============================= */
+function openSprintModal(sprintId){
+  state.currentSprintId = sprintId || null;
+  const modal = document.getElementById('sprintModal');
+  if(sprintId){
+    const sp = findSprint(sprintId);
+    document.getElementById('sprintModalTitle').textContent = 'Editar sprint';
+    document.getElementById('sp-name').value = sp.name;
+    document.getElementById('sp-start').value = sp.startDate||'';
+    document.getElementById('sp-end').value = sp.endDate||'';
+    document.getElementById('sp-status').value = sp.status||'Planejada';
+    document.getElementById('btnDeleteSprint').style.display='';
+  } else {
+    document.getElementById('sprintModalTitle').textContent = 'Nova sprint';
+    document.getElementById('sp-name').value = '';
+    document.getElementById('sp-start').value = '';
+    document.getElementById('sp-end').value = '';
+    document.getElementById('sp-status').value = 'Planejada';
+    document.getElementById('btnDeleteSprint').style.display='none';
+  }
+  modal.classList.add('open');
+}
+
+async function saveSprintFromModal(){
+  const name = document.getElementById('sp-name').value.trim();
+  if(!name){ toast('Dê um nome para a sprint', true); return; }
+  const sprint = state.currentSprintId ? findSprint(state.currentSprintId) : { id: uid('sprint') };
+  sprint.name = name;
+  sprint.startDate = document.getElementById('sp-start').value;
+  sprint.endDate = document.getElementById('sp-end').value;
+  sprint.status = document.getElementById('sp-status').value;
+  if(!state.currentSprintId){ state.sprints.push(sprint); }
+  await persistSprint(sprint);
+  state.sprints.sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  document.getElementById('sprintModal').classList.remove('open');
+  renderAll();
+  toast('Sprint salva');
+}
+
+function deleteCurrentSprint(){
+  const sp = findSprint(state.currentSprintId);
+  const count = state.tasks.filter(t=>t.sprintId===sp.id).length;
+  showConfirm(`Excluir a sprint "${sp.name}"? ${count>0? count+' task(s) associadas voltarão para o backlog.':''}`, async ()=>{
+    for(const t of state.tasks){
+      if(t.sprintId === sp.id){
+        t.sprintId = null;
+        addHistory(t, `Sprint "${sp.name}" foi excluída; task movida para o backlog.`);
+        await persistTask(t);
+      }
+    }
+    await deleteRecord('sprints', sp.id);
+    state.sprints = state.sprints.filter(s=>s.id!==sp.id);
+    document.getElementById('sprintModal').classList.remove('open');
+    renderAll();
+    toast('Sprint excluída');
+  });
+}
+
+/* ============================= IMPORT SPREADSHEET ============================= */
+let parsedImportRows = [];
+
+function parseIterationLabel(str){
+  if(!str) return null;
+  const m = String(str).match(/Itera[cç][aã]o\s*(\d+)\s*-\s*(\d{2})\/(\d{2})\s*a\s*(\d{2})\/(\d{2})/i);
+  if(!m) return null;
+  const year = new Date().getFullYear();
+  return {
+    num: parseInt(m[1],10),
+    label: `Iteração ${m[1]}`,
+    start: `${year}-${m[2]}-${m[3]}`,
+    end: `${year}-${m[4]}-${m[5]}`
+  };
+}
+
+function cleanTitle(t){
+  if(!t) return '';
+  return String(t).replace(/^\[[^\]]+\]\s*/, '').trim();
+}
+function cellVal(v){
+  if(v===undefined||v===null) return '';
+  const s = String(v).trim();
+  return s==='-' ? '' : s;
+}
+
+function mapCategory(projeto){
+  const p = (projeto||'').toLowerCase();
+  if(p.includes('clube')) return 'Clube do Assinante';
+  if(p.includes('licenciamento')) return 'Licenciamento de Camisetas';
+  if(p.includes('petlove')) return 'Petlove';
+  return 'GZH';
+}
+
+function handleImportFile(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+      const header = rows[0].map(h=>String(h).toLowerCase());
+      const idx = {
+        projeto: header.findIndex(h=>h.includes('projeto')),
+        marco: header.findIndex(h=>h.includes('marco') && !h.includes('data')),
+        marcoData: header.findIndex(h=>h.includes('data') && h.includes('marco')),
+        epico: header.findIndex(h=>(h.includes('épico')||h.includes('epico')) && !h.includes('data')),
+        epicoData: header.findIndex(h=>h.includes('data') && (h.includes('épico')||h.includes('epico'))),
+        historia: header.findIndex(h=>h.includes('história')||h.includes('historia')),
+        historiaData: header.findIndex(h=>h.includes('data') && (h.includes('história')||h.includes('historia'))),
+        responsavel: header.findIndex(h=>h.includes('responsável')||h.includes('responsavel')),
+        habilitador: header.findIndex(h=>h.includes('habilitador')||h.includes('observa')),
+      };
+      const body = rows.slice(1).filter(r=> r.some(c=> String(c).trim() !== ''));
+      parsedImportRows = body.map(r=>({
+        projeto: cellVal(r[idx.projeto]),
+        marco: cellVal(r[idx.marco]),
+        marcoData: cellVal(r[idx.marcoData]),
+        epico: cellVal(r[idx.epico]),
+        epicoData: cellVal(r[idx.epicoData]),
+        historia: cellVal(r[idx.historia]),
+        historiaData: cellVal(r[idx.historiaData]),
+        responsavel: cellVal(r[idx.responsavel]),
+        habilitador: cellVal(r[idx.habilitador]),
+      })).filter(r=>r.historia);
+      renderImportPreview();
+    }catch(err){
+      console.error(err);
+      toast('Não foi possível ler o arquivo. Verifique o formato.', true);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderImportPreview(){
+  const filterText = document.getElementById('importFilterResp').value.trim().toLowerCase();
+  const rows = filterText ? parsedImportRows.filter(r=>r.responsavel.toLowerCase().includes(filterText)) : parsedImportRows;
+
+  const summary = document.getElementById('importSummary');
+  summary.classList.add('show');
+  summary.innerHTML = `<b>${rows.length}</b> task(s) serão importadas de <b>${parsedImportRows.length}</b> linha(s) encontradas na planilha.`;
+
+  const preview = document.getElementById('importPreview');
+  if(rows.length===0){
+    preview.innerHTML = '<p style="padding:10px;" class="hist-empty">Nenhuma linha corresponde ao filtro.</p>';
+  } else {
+    preview.innerHTML = `<table><thead><tr><th>Categoria</th><th>Título</th><th>Responsável</th><th>Sprint</th></tr></thead><tbody>` +
+      rows.slice(0,60).map(r=>{
+        const iter = parseIterationLabel(r.historiaData);
+        return `<tr><td>${esc(mapCategory(r.projeto))}</td><td>${esc(cleanTitle(r.historia))}</td><td>${esc(r.responsavel)}</td><td>${iter?esc(iter.label):'—'}</td></tr>`;
+      }).join('') + `</tbody></table>`;
+  }
+  document.getElementById('btnConfirmImport').disabled = rows.length===0;
+  document.getElementById('btnConfirmImport').dataset.count = rows.length;
+}
+
+async function confirmImport(){
+  const filterText = document.getElementById('importFilterResp').value.trim().toLowerCase();
+  const rows = filterText ? parsedImportRows.filter(r=>r.responsavel.toLowerCase().includes(filterText)) : parsedImportRows;
+  if(rows.length===0) return;
+
+  const sprintByNum = {};
+  state.sprints.forEach(s=>{
+    const m = s.name.match(/(\d+)/);
+    if(m) sprintByNum[parseInt(m[1],10)] = s;
+  });
+
+  let created = 0;
+  for(const r of rows){
+    const iter = parseIterationLabel(r.historiaData);
+    let sprintId = null;
+    if(iter){
+      let sp = sprintByNum[iter.num];
+      if(!sp){
+        sp = { id: uid('sprint'), name: iter.label, startDate: iter.start, endDate: iter.end, status:'Planejada' };
+        state.sprints.push(sp);
+        sprintByNum[iter.num] = sp;
+        await persistSprint(sp);
+      }
+      sprintId = sp.id;
+    }
+    const descParts = [];
+    if(r.marco) descParts.push('Marco: '+r.marco);
+    if(r.epico) descParts.push('Épico: '+r.epico);
+    const task = {
+      id: uid('task'),
+      title: cleanTitle(r.historia),
+      description: descParts.join('\n'),
+      category: mapCategory(r.projeto),
+      habilitador: r.habilitador,
+      responsavel: r.responsavel,
+      priority: 'Média',
+      status: 'Não iniciado',
+      dueDate: iter? iter.end : '',
+      sprintId,
+      attachments: [],
+      subtasks: [],
+      history: [{ ts: nowISO(), label: 'Task criada via importação de planilha.' }],
+      createdAt: nowISO(),
+      updatedAt: nowISO()
+    };
+    state.tasks.push(task);
+    await persistTask(task);
+    created++;
+  }
+  state.sprints.sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  document.getElementById('importModal').classList.remove('open');
+  renderAll();
+  toast(`${created} task(s) importada(s) com sucesso`);
+  parsedImportRows = [];
+  document.getElementById('importFileInput').value = '';
+  document.getElementById('importSummary').classList.remove('show');
+  document.getElementById('importPreview').innerHTML = '';
+}
+
+/* ============================= VIEW SWITCHING ============================= */
+function switchView(view){
+  state.activeView = view;
+  document.querySelectorAll('.tab-btn').forEach(b=> b.classList.toggle('active', b.dataset.view===view));
+  document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id==='view-'+view));
+}
+
+/* ============================= EVENT WIRING ============================= */
+function wireEvents(){
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.addEventListener('click', ()=> switchView(b.dataset.view));
+  });
+
+  document.getElementById('btnNewTask').addEventListener('click', ()=> openTaskModal(null));
+  document.getElementById('btnNewSprint').addEventListener('click', ()=> openSprintModal(null));
+  document.getElementById('btnImport').addEventListener('click', ()=>{
+    document.getElementById('importModal').classList.add('open');
+  });
+
+  document.querySelectorAll('[data-close]').forEach(b=>{
+    b.addEventListener('click', ()=> document.getElementById(b.dataset.close).classList.remove('open'));
+  });
+  document.querySelectorAll('.modal-overlay').forEach(ov=>{
+    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+  });
+
+  document.querySelectorAll('.mtab-btn').forEach(b=>{
+    b.addEventListener('click', ()=> switchModalTab(b.dataset.mtab));
+  });
+
+  document.getElementById('btnSaveTask').addEventListener('click', saveTaskFromModal);
+  document.getElementById('btnDeleteTask').addEventListener('click', deleteCurrentTask);
+  document.getElementById('btnAddSubtask').addEventListener('click', addNewSubtask);
+  document.getElementById('btnSaveSubtask').addEventListener('click', saveSubtaskFromModal);
+  document.getElementById('btnDeleteSubtask').addEventListener('click', deleteCurrentSubtask);
+  document.getElementById('btnSaveSprint').addEventListener('click', saveSprintFromModal);
+  document.getElementById('btnDeleteSprint').addEventListener('click', deleteCurrentSprint);
+
+  // task attachments
+  const taskDrop = document.getElementById('taskAttachDrop');
+  const taskInput = document.getElementById('taskAttachInput');
+  taskInput.addEventListener('change', (e)=> handleTaskFiles(e.target.files));
+  taskDrop.addEventListener('dragover', e=>{ e.preventDefault(); taskDrop.classList.add('drag-over'); });
+  taskDrop.addEventListener('dragleave', ()=> taskDrop.classList.remove('drag-over'));
+  taskDrop.addEventListener('drop', e=>{
+    e.preventDefault(); taskDrop.classList.remove('drag-over');
+    handleTaskFiles(e.dataTransfer.files);
+  });
+
+  // subtask attachments
+  const subDrop = document.getElementById('subAttachDrop');
+  const subInput = document.getElementById('subAttachInput');
+  subInput.addEventListener('change', (e)=> handleSubFiles(e.target.files));
+  subDrop.addEventListener('dragover', e=>{ e.preventDefault(); subDrop.classList.add('drag-over'); });
+  subDrop.addEventListener('dragleave', ()=> subDrop.classList.remove('drag-over'));
+  subDrop.addEventListener('drop', e=>{
+    e.preventDefault(); subDrop.classList.remove('drag-over');
+    handleSubFiles(e.dataTransfer.files);
+  });
+
+  // import modal
+  const importDrop = document.getElementById('importDrop');
+  const importInput = document.getElementById('importFileInput');
+  importInput.addEventListener('change', (e)=>{ if(e.target.files[0]) handleImportFile(e.target.files[0]); });
+  importDrop.addEventListener('dragover', e=>{ e.preventDefault(); importDrop.classList.add('drag-over'); });
+  importDrop.addEventListener('dragleave', ()=> importDrop.classList.remove('drag-over'));
+  importDrop.addEventListener('drop', e=>{
+    e.preventDefault(); importDrop.classList.remove('drag-over');
+    if(e.dataTransfer.files[0]) handleImportFile(e.dataTransfer.files[0]);
+  });
+  document.getElementById('importFilterResp').addEventListener('input', ()=>{
+    if(parsedImportRows.length) renderImportPreview();
+  });
+  document.getElementById('btnConfirmImport').addEventListener('click', confirmImport);
+
+  // filters
+  document.getElementById('filterSprint').addEventListener('change', e=>{ state.filters.sprint = e.target.value; renderAll(); });
+  document.getElementById('filterCategory').addEventListener('change', e=>{ state.filters.category = e.target.value; renderAll(); });
+  document.getElementById('filterStatus').addEventListener('change', e=>{ state.filters.status = e.target.value; renderAll(); });
+  document.getElementById('filterPriority').addEventListener('change', e=>{ state.filters.priority = e.target.value; renderAll(); });
+  document.getElementById('filterHabilitador').addEventListener('input', e=>{ state.filters.habilitador = e.target.value; renderAll(); });
+  document.getElementById('btnClearFilters').addEventListener('click', ()=>{
+    state.filters = { sprint:'', category:'', status:'', priority:'', habilitador:'' };
+    document.getElementById('filterSprint').value='';
+    document.getElementById('filterCategory').value='';
+    document.getElementById('filterStatus').value='';
+    document.getElementById('filterPriority').value='';
+    document.getElementById('filterHabilitador').value='';
+    renderAll();
+  });
+
+  // confirm dialog
+  document.getElementById('confirmCancelBtn').addEventListener('click', ()=>{
+    document.getElementById('confirmOverlay').classList.remove('open');
+    state.confirmCallback = null;
+  });
+  document.getElementById('confirmOkBtn').addEventListener('click', async ()=>{
+    document.getElementById('confirmOverlay').classList.remove('open');
+    if(state.confirmCallback) await state.confirmCallback();
+    state.confirmCallback = null;
+  });
+}
+
+/* ============================= BOOT ============================= */
+document.addEventListener('DOMContentLoaded', ()=>{
+  wireEvents();
+  init().catch(err=>{
+    console.error(err);
+    toast('Erro ao iniciar o banco de dados local.', true);
+  });
+});
+
+})();
+</script>
+</body>
+</html>
